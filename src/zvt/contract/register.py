@@ -100,10 +100,12 @@ def register_schema(
         for table_name, table in iter(schema_base.metadata.tables.items()):
             index_list = []
             with engine.connect() as con:
-                con.execute("PRAGMA journal_mode=WAL;")
-                rs = con.execute("PRAGMA INDEX_LIST('{}')".format(table_name))
+                # con.execute("PRAGMA journal_mode=WAL;") // sqlite
+                # rs = con.execute("PRAGMA INDEX_LIST('{}')".format(table_name)) // sqlite
+                rs = con.execute("SHOW INDEX FROM `{}`".format(table_name))
                 for row in rs:
-                    index_list.append(row[1])
+                    # index_list.append(row[1])
+                    index_list.append(row[2])
 
             logger.debug("engine:{},table:{},index:{}".format(engine, table_name, index_list))
 

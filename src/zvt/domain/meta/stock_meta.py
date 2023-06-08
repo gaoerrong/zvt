@@ -20,13 +20,13 @@ class StockDetail(StockMetaBase, TradableEntity):
     __tablename__ = "stock_detail"
 
     #: 所属行业
-    industries = Column(String)
+    industries = Column(String(length=64))
     #: 行业指数
-    industry_indices = Column(String)
+    industry_indices = Column(String(length=64))
     #: 所属板块
-    concept_indices = Column(String)
+    concept_indices = Column(String(length=64))
     #: 所属区域
-    area_indices = Column(String)
+    area_indices = Column(String(length=64))
 
     #: 成立日期
     date_of_establishment = Column(DateTime)

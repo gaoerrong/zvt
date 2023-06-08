@@ -1,0 +1,16 @@
+{
+  "data_path": "/Users/gaoerrong/s_project/zvt/data",
+  "log_path": "/Users/gaoerrong/s_project/zvt/logs",
+  "ui_path": "/Users/gaoerrong/s_project/zvt/ui",
+  "zvt_home": "/Users/gaoerrong/s_project/zvt",
+  "jq_username": "",
+  "jq_password": "",
+  "http_proxy": "127.0.0.1:1087",
+  "https_proxy": "127.0.0.1:1087",
+  "smtp_host": "smtp.163.com",
+  "smtp_port": "465",
+  "email_username": "2005081097@163.com",
+  "email_password": "zG+7101120",
+  "wechat_app_id": "",
+  "wechat_app_secrect": ""
+}

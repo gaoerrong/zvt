@@ -5,6 +5,7 @@ import platform
 from typing import List, Union, Type
 
 import pandas as pd
+import mysql.connector
 from sqlalchemy import create_engine
 from sqlalchemy import func, exists, and_
 from sqlalchemy.engine import Engine
@@ -49,12 +50,35 @@ def get_db_engine(
     if data_schema:
         db_name = _get_db_name(data_schema=data_schema)
 
+    # db_path = os.path.join(data_path, "{}_{}.db?check_same_thread=False".format(provider, db_name))
+    #
+    # engine_key = "{}_{}".format(provider, db_name)
+    # db_engine = zvt_context.db_engine_map.get(engine_key)
+    # if not db_engine:
+    #     db_engine = create_engine("sqlite:///" + db_path, echo=False)
+    #     zvt_context.db_engine_map[engine_key] = db_engine
+    # return db_engine
+    return get_mysql_db_engine(provider, db_name)
+
+
+def get_sqlite_db_engine(provider: str, db_name: str = None, data_schema: object = None,
+                         data_path: str = zvt_env["data_path"]
+                         ) -> Engine:
     db_path = os.path.join(data_path, "{}_{}.db?check_same_thread=False".format(provider, db_name))
 
     engine_key = "{}_{}".format(provider, db_name)
     db_engine = zvt_context.db_engine_map.get(engine_key)
     if not db_engine:
         db_engine = create_engine("sqlite:///" + db_path, echo=False)
+        zvt_context.db_engine_map[engine_key] = db_engine
+    return db_engine
+
+
+def get_mysql_db_engine(provider: str, db_name: str = None) -> Engine:
+    engine_key = "{}_{}".format(provider, db_name)
+    db_engine = zvt_context.db_engine_map.get(engine_key)
+    if not db_engine:
+        db_engine = create_engine('mysql+mysqlconnector://root:123456789@localhost:3306/s_data')
         zvt_context.db_engine_map[engine_key] = db_engine
     return db_engine
 
@@ -511,11 +535,24 @@ def df_to_db(
             ids = df_current["id"].tolist()
             if len(ids) == 1:
                 sql = f'delete from `{data_schema.__tablename__}` where id = "{ids[0]}"'
+                session.execute(sql)
+                session.commit()
             else:
-                sql = f"delete from `{data_schema.__tablename__}` where id in {tuple(ids)}"
-
-            session.execute(sql)
-            session.commit()
+                skip_table = ["stock_1d_hfq_kdata"]
+                if data_schema.__tablename__ in skip_table:
+                    entity_id = df_current["entity_id"].tolist()[0]
+                    # 先判断一下表中这个entity_id对应的数据是否有，有的话再做删除，没有的话就直接插入了
+                    select_sql = f"select id from `{data_schema.__tablename__}` where entity_id = '{entity_id}' limit 1"
+                    query_result = session.execute(select_sql);
+                    query_count = len(query_result.fetchall())
+                    if query_count > 0:
+                        sql = f"delete from `{data_schema.__tablename__}` where id in {tuple(ids)}"
+                        session.execute(sql)
+                        session.commit()
+                else:
+                    sql = f"delete from `{data_schema.__tablename__}` where id in {tuple(ids)}"
+                    session.execute(sql)
+                    session.commit()
 
         else:
             current = get_data(

@@ -24,9 +24,9 @@ class LimitUpInfo(EmotionBase, Mixin):
     #: 最后封板时间
     last_limit_up_time = Column(DateTime)
     #: 涨停类型:换手板，一字板
-    limit_up_type = Column(String)
+    limit_up_type = Column(String(length=64))
     #: 封单金额
-    order_amount = Column(String)
+    order_amount = Column(String(length=64))
     #: 最近一年封板成功率
     success_rate = Column(Float)
     #: 流通市值
@@ -36,9 +36,9 @@ class LimitUpInfo(EmotionBase, Mixin):
     #: 换手率
     turnover_rate = Column(Float)
     #: 涨停原因
-    reason = Column(String)
+    reason = Column(String(length=512))
     #: 几天几板
-    high_days = Column(String)
+    high_days = Column(String(length=64))
     #: 最近几板，不一定是连板
     high_days_count = Column(Integer)
 

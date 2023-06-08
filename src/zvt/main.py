@@ -36,6 +36,8 @@ zvt_app.layout = serve_layout
 
 
 def main():
+    env = os.environ
+    env['ZVT_HOME'] = '/Users/gaoerrong/s_project/zvt'
     init_plugins()
     zvt_app.run_server(debug=True)
     # zvt_app.run_server()

@@ -26,7 +26,7 @@ sched = BackgroundScheduler()
 
 
 @sched.scheduled_job("cron", hour=15, minute=30, day_of_week="mon-fri")
-def record_stock_data(data_provider="em", entity_provider="em", sleeping_time=2):
+def record_stock_data(data_provider="em", entity_provider="em", sleeping_time=1):
     # A股指数
     run_data_recorder(domain=Index, data_provider=data_provider, force_update=False)
     # A股指数行情
@@ -82,7 +82,7 @@ def record_stock_data(data_provider="em", entity_provider="em", sleeping_time=2)
 
 
 @sched.scheduled_job("cron", hour=16, minute=30, day_of_week="mon-fri")
-def record_stockhk_data(data_provider="em", entity_provider="em", sleeping_time=2):
+def record_stockhk_data(data_provider="em", entity_provider="em", sleeping_time=1):
     # 港股标的
     run_data_recorder(domain=Stockhk, data_provider=data_provider, force_update=False)
     # 港股后复权行情

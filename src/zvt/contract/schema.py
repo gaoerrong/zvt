@@ -17,9 +17,9 @@ class Mixin(object):
     """
 
     #: id
-    id = Column(String, primary_key=True)
+    id = Column(String(length=64), primary_key=True)
     #: entity id
-    entity_id = Column(String)
+    entity_id = Column(String(length=64))
 
     #: the meaning could be different for different case,most time it means 'happen time'
     timestamp = Column(DateTime)
@@ -498,7 +498,7 @@ class PortfolioStock(Mixin):
     #: portfolio名字
     name = Column(String(length=128))
 
-    stock_id = Column(String)
+    stock_id = Column(String(length=64))
     stock_code = Column(String(length=64))
     stock_name = Column(String(length=128))
 
@@ -527,8 +527,8 @@ class TradableMeetActor(Mixin):
     #: tradable name
     name = Column(String(length=128))
 
-    actor_id = Column(String)
-    actor_type = Column(String)
+    actor_id = Column(String(length=64))
+    actor_type = Column(String(length=64))
     actor_code = Column(String(length=64))
     actor_name = Column(String(length=128))
 
@@ -540,8 +540,8 @@ class ActorMeetTradable(Mixin):
     #: actor name
     name = Column(String(length=128))
 
-    tradable_id = Column(String)
-    tradable_type = Column(String)
+    tradable_id = Column(String(length=64))
+    tradable_type = Column(String(length=64))
     tradable_code = Column(String(length=64))
     tradable_name = Column(String(length=128))
 

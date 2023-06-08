@@ -12,7 +12,7 @@ class StockNews(NewsBase, Mixin):
     __tablename__ = "stock_news"
 
     #: 新闻标题
-    news_title = Column(String)
+    news_title = Column(String(length=128))
 
 
 register_schema(providers=["em"], db_name="stock_news", schema_base=NewsBase, entity_type="stock")
