@@ -72,7 +72,7 @@ class EastmoneyStockDetailRecorder(Recorder):
             # 关联地区
             security_item.area_indices = resp_json["Provice"]
 
-            self.sleep()
+            # self.sleep()
 
             # 发行相关
             param = {"color": "w", "fc": fc}

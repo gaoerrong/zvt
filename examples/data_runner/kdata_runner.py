@@ -101,7 +101,7 @@ if __name__ == "__main__":
     init_log("kdata_runner.log")
 
     record_stock_data()
-    record_stockhk_data()
+    # record_stockhk_data()
 
     sched.start()
 
