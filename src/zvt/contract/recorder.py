@@ -441,9 +441,13 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
                     # if index != 0:
                         # self.sleep()
 
-                    original_list = self.record(
-                        entity_item, start=start_timestamp, end=end_timestamp, size=size, timestamps=timestamps
-                    )
+                    try:
+                        original_list = self.record(
+                            entity_item, start=start_timestamp, end=end_timestamp, size=size, timestamps=timestamps
+                        )
+                    except Exception as e:
+                        self.logger.exception("recoder entity_item:{},has exception:{},but continue".format(entity_item, e))
+                        continue;
 
                     all_duplicated = True
 
@@ -514,7 +518,7 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
                     )
                     raising_exception = e
                     finished_items = unfinished_items
-                    break
+                    #break
 
             unfinished_items = set(unfinished_items) - set(finished_items)
 

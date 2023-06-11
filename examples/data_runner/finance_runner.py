@@ -21,15 +21,15 @@ sched = BackgroundScheduler()
 
 @sched.scheduled_job("cron", hour=1, minute=00, day_of_week=5)
 def record_actor_data(data_provider="eastmoney", entity_provider="eastmoney"):
-    run_data_recorder(domain=Stock, data_provider=data_provider)
-    run_data_recorder(domain=StockDetail, data_provider=data_provider)
-    run_data_recorder(domain=FinanceFactor, data_provider=data_provider, entity_provider=entity_provider, day_data=True)
-    run_data_recorder(domain=BalanceSheet, data_provider=data_provider, entity_provider=entity_provider, day_data=True)
+    # run_data_recorder(domain=Stock, data_provider=data_provider,sleeping_time=1)
+    # run_data_recorder(domain=StockDetail, data_provider=data_provider,sleeping_time=1)
+    run_data_recorder(domain=FinanceFactor, data_provider=data_provider, entity_provider=entity_provider,sleeping_time=1, day_data=True)
+    run_data_recorder(domain=BalanceSheet, data_provider=data_provider, entity_provider=entity_provider,sleeping_time=1, day_data=True)
     run_data_recorder(
-        domain=IncomeStatement, data_provider=data_provider, entity_provider=entity_provider, day_data=True
+        domain=IncomeStatement, data_provider=data_provider, entity_provider=entity_provider,sleeping_time=1, day_data=True
     )
     run_data_recorder(
-        domain=CashFlowStatement, data_provider=data_provider, entity_provider=entity_provider, day_data=True
+        domain=CashFlowStatement, data_provider=data_provider, entity_provider=entity_provider,sleeping_time=1, day_data=True
     )
 
 
