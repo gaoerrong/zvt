@@ -494,11 +494,11 @@ def get_tradable_list(
             if exchange == Exchange.nasdaq:
                 # t=1
                 # t=3 中概股
-                entity_flag = f"fs=m:105+t:1,m:105+t:3"
+                entity_flag = f"fs=m:105+t:1,m:105+t:3,m:105+t:2,m:105+t:4"
             if exchange == Exchange.nyse:
                 # t=1
                 # t=3 中概股
-                entity_flag = f"fs=m:106+t:1,m:105+t:3"
+                entity_flag = f"fs=m:106+t:1,m:105+t:3,m:106+t:2,m:106+t:4,m:106+t:3"
             if exchange == Exchange.cn:
                 if block_category == BlockCategory.industry:
                     entity_flag = entity_flag + "+t:2"

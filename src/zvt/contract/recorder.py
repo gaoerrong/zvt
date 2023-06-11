@@ -438,8 +438,8 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
                         continue
 
                     #: sleep for a while to next entity
-                    if index != 0:
-                        self.sleep()
+                    # if index != 0:
+                        # self.sleep()
 
                     original_list = self.record(
                         entity_item, start=start_timestamp, end=end_timestamp, size=size, timestamps=timestamps
