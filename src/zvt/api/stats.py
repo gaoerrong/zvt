@@ -13,8 +13,9 @@ from zvt.contract import Mixin, AdjustType
 from zvt.contract.api import decode_entity_id, get_entity_schema, get_entity_ids
 from zvt.contract.drawer import Drawer
 from zvt.domain import FundStock, StockValuation, BlockStock, Block
+from zvt.factors import TechnicalFactor
 from zvt.utils import now_pd_timestamp, next_date, pd_is_not_null
-from zvt.utils.time_utils import month_start_end_ranges, to_time_str, is_same_date
+from zvt.utils.time_utils import month_start_end_ranges, to_time_str, is_same_date,pre_month_end_date
 
 logger = logging.getLogger(__name__)
 

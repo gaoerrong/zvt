@@ -104,7 +104,7 @@ class AccountStatsReader(DataReader):
             level,
             category_field="trader_name",
             time_field="timestamp",
-            keep_window=None,
+            computing_window=None,
         )
 
     def draw_line(self, show=True):
@@ -155,7 +155,7 @@ class OrderReader(DataReader):
             level,
             category_field="trader_name",
             time_field="timestamp",
-            keep_window=None,
+            computing_window=None,
         )
 
 

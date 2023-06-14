@@ -7,13 +7,14 @@ import pandas as pd
 from pandas import DataFrame
 
 from zvt.contract import IntervalLevel
+from zvt.contract.drawer import Drawer
 from zvt.contract.factor import Factor
 from zvt.domain.meta.stock_meta import Stock
 from zvt.utils.pd_utils import index_df, pd_is_not_null, is_filter_result_df, is_score_result_df
 from zvt.utils.time_utils import to_pd_timestamp, now_pd_timestamp
 
 
-class TradeType(Enum):
+class TargetType(Enum):
     # open_long 代表开多，并应该平掉相应标的的空单
     open_long = "open_long"
     # open_short 代表开空，并应该平掉相应标的的多单
@@ -128,12 +129,12 @@ class TargetSelector(object):
 
         self.generate_targets()
 
-    def get_targets(self, timestamp, trade_type: TradeType = TradeType.open_long) -> List[str]:
-        if trade_type == TradeType.open_long:
+    def get_targets(self, timestamp, target_type: TargetType = TargetType.open_long) -> List[str]:
+        if target_type == TargetType.open_long:
             df = self.open_long_df
-        elif trade_type == TradeType.open_short:
+        elif target_type == TargetType.open_short:
             df = self.open_short_df
-        elif trade_type == TradeType.keep:
+        elif target_type == TargetType.keep:
             df = self.keep_df
         else:
             assert False
@@ -145,13 +146,13 @@ class TargetSelector(object):
         return []
 
     def get_targets_between(
-        self, start_timestamp, end_timestamp, trade_type: TradeType = TradeType.open_long
+        self, start_timestamp, end_timestamp, target_type: TargetType = TargetType.open_long
     ) -> List[str]:
-        if trade_type == TradeType.open_long:
+        if target_type == TargetType.open_long:
             df = self.open_long_df
-        elif trade_type == TradeType.open_short:
+        elif target_type == TargetType.open_short:
             df = self.open_short_df
-        elif trade_type == TradeType.keep:
+        elif target_type == TargetType.keep:
             df = self.keep_df
         else:
             assert False
@@ -162,10 +163,10 @@ class TargetSelector(object):
         return []
 
     def get_open_long_targets(self, timestamp):
-        return self.get_targets(timestamp=timestamp, trade_type=TradeType.open_long)
+        return self.get_targets(timestamp=timestamp, target_type=TargetType.open_long)
 
     def get_open_short_targets(self, timestamp):
-        return self.get_targets(timestamp=timestamp, trade_type=TradeType.open_short)
+        return self.get_targets(timestamp=timestamp, target_type=TargetType.open_short)
 
     # overwrite it to generate targets
     def generate_targets(self):
@@ -213,6 +214,31 @@ class TargetSelector(object):
             df = df.sort_values(by=["score", "entity_id"])
         return df
 
+    def draw(
+        self,
+        render="html",
+        file_name=None,
+        width=None,
+        height=None,
+        title=None,
+        keep_ui_state=True,
+        annotation_df=None,
+        target_type: TargetType = TargetType.open_long,
+    ):
+
+        if target_type == TargetType.open_long:
+            df = self.open_long_df.copy()
+        elif target_type == TargetType.open_short:
+            df = self.open_short_df.copy()
+
+        df["target_type"] = target_type.value
+
+        if pd_is_not_null(df):
+            df = df.reset_index(drop=False)
+            drawer = Drawer(df)
+
+            drawer.draw_table(width=width, height=height, title=title, keep_ui_state=keep_ui_state)
+
 
 # the __all__ is generated
-__all__ = ["TradeType", "SelectMode", "TargetSelector"]
+__all__ = ["TargetType", "SelectMode", "TargetSelector"]

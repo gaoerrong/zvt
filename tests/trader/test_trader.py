@@ -11,9 +11,9 @@ sell_timestamp = "2020-01-06"
 class SingleTrader(StockTrader):
     def on_time(self, timestamp):
         if is_same_date(buy_timestamp, timestamp):
-            self.buy(timestamp=buy_timestamp, entity_ids=["stock_sz_000338"])
+            self.buy(due_timestamp=buy_timestamp, happen_timestamp=buy_timestamp, entity_ids=["stock_sz_000338"])
         if is_same_date(sell_timestamp, timestamp):
-            self.sell(timestamp=sell_timestamp, entity_ids=["stock_sz_000338"])
+            self.sell(due_timestamp=sell_timestamp, happen_timestamp=sell_timestamp, entity_ids=["stock_sz_000338"])
 
     def long_position_control(self):
         return 1
@@ -27,6 +27,7 @@ def test_single_trader():
         end_timestamp="2020-01-10",
         trader_name="000338_single_trader",
         draw_result=True,
+        adjust_type=AdjustType.qfq,
     )
     trader.run()
 
@@ -58,12 +59,13 @@ class MultipleTrader(StockTrader):
 
     def on_time(self, timestamp):
         if is_same_date(buy_timestamp, timestamp):
-            self.buy(timestamp=timestamp, entity_ids=["stock_sz_000338"])
+            self.buy(due_timestamp=buy_timestamp, happen_timestamp=buy_timestamp, entity_ids=["stock_sz_000338"])
             self.has_buy = True
-            self.buy(timestamp=timestamp, entity_ids=["stock_sh_601318"])
+            self.buy(due_timestamp=buy_timestamp, happen_timestamp=buy_timestamp, entity_ids=["stock_sh_601318"])
         if is_same_date(sell_timestamp, timestamp):
             self.sell(
-                timestamp=timestamp,
+                due_timestamp=sell_timestamp,
+                happen_timestamp=sell_timestamp,
                 entity_ids=["stock_sz_000338", "stock_sh_601318"],
             )
 

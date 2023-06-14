@@ -16,7 +16,7 @@ def test_ma():
         start_timestamp="2019-01-01",
         end_timestamp="2019-06-10",
         level=IntervalLevel.LEVEL_1DAY,
-        keep_window=30,
+        computing_window=30,
         transformer=MaTransformer(windows=[5, 10, 30]),
         adjust_type="qfq",
     )
@@ -49,7 +49,7 @@ def test_macd():
         start_timestamp="2019-01-01",
         end_timestamp="2019-06-10",
         level=IntervalLevel.LEVEL_1DAY,
-        keep_window=None,
+        computing_window=None,
         transformer=MacdTransformer(),
         adjust_type="qfq",
     )
