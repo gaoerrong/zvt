@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 sched = BackgroundScheduler()
 
-
-@sched.scheduled_job("cron", hour=15, minute=30, day_of_week="mon-fri")
+# 每天上午8点开始调度
+@sched.scheduled_job("cron", hour=8)
 def record_stockus_data(data_provider="em", entity_provider="em", sleeping_time=1):
     # 美股指数
     run_data_recorder(domain=Indexus, data_provider=data_provider, force_update=False)
