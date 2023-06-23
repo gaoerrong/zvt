@@ -9,7 +9,7 @@ from zvt import init_log
 from zvt.domain import (
     Index,
     Stockus,
-    Stockus1dHfqKdata,
+    Stockus1dKdata,
     Indexus,
     Indexus1dKdata,
 )
@@ -36,9 +36,9 @@ def record_stockus_data(data_provider="em", entity_provider="em", sleeping_time=
 
     # 美股标的
     run_data_recorder(domain=Stockus, data_provider=data_provider, force_update=False)
-    # 美股后复权行情
+    # 美股前复权行情
     run_data_recorder(
-        domain=Stockus1dHfqKdata,
+        domain=Stockus1dKdata,
         data_provider=data_provider,
         entity_provider=entity_provider,
         day_data=True,

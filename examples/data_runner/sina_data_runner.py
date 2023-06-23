@@ -3,6 +3,7 @@ import logging
 import time
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import or_
 
 from examples.recorder_utils import run_data_recorder
 from zvt import init_log, zvt_config
@@ -22,13 +23,21 @@ def record_block():
 
 @sched.scheduled_job("cron", hour=15, minute=30)
 def record_money_flow():
-    run_data_recorder(domain=BlockMoneyFlow, data_provider="sina", entity_provider="sina", day_data=True)
+    entity_filter = [Block.code.like("new%") | Block.code.like("gn%")]
+    run_data_recorder(
+        domain=BlockMoneyFlow,
+        data_provider="sina",
+        entity_provider="sina",
+        day_data=True,
+        sleeping_time=5,
+        entity_filters=entity_filter,
+    )
 
 
 if __name__ == "__main__":
     init_log("sina_data_runner.log")
 
-    record_block()
+    # record_block()
     record_money_flow()
 
     sched.start()

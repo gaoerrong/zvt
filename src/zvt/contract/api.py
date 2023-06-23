@@ -537,7 +537,7 @@ def df_to_db(
                 session.execute(sql)
                 session.commit()
             else:
-                skip_table = ["stock_1d_hfq_kdata","stockus_1d_hfq_kdata"]
+                skip_table = ["stock_1d_hfq_kdata","stockus_1d_hfq_kdata","stock_1d_kdata","stockus_1d_kdata"]
                 if data_schema.__tablename__ in skip_table:
                     entity_id = df_current["entity_id"].tolist()[0]
                     # 先判断一下表中这个entity_id对应的数据是否有，有的话再做删除，没有的话就直接插入了

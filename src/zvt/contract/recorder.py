@@ -437,9 +437,9 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
                         self.on_finish_entity(entity_item)
                         continue
 
-                    #: sleep for a while to next entity
-                    if index != 0:
-                        self.sleep()
+                    #: sleep for a while to next entity 去掉sleep的地方
+                    # if index != 0:
+                    #     self.sleep()
 
                     try:
                         original_list = self.record(
