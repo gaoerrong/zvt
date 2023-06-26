@@ -26,7 +26,7 @@ def last_day_vol_low():
             start_timestamp=start_timestamp,
             order=Stock1dKdata.timestamp.desc(),
         )
-        if k_data_list.empty:
+        if k_data_list.empty or len(k_data_list.index) < 80:
             continue
         # 判断最后一行的成交量是否是全部成交量的最小值
         last_volume = k_data_list['volume'].iloc[0]
@@ -63,9 +63,7 @@ def vol_multiple():
             start_timestamp=start_timestamp,
             order=Stock1dKdata.timestamp.desc(),
         )
-        if k_data_list.empty:
-            continue
-        if len(k_data_list.index) < 2:
+        if k_data_list.empty or len(k_data_list.index) < 2:
             continue
         # 获取DataFrame中第一个和第二个记录的'volume'值
         first_volume = k_data_list.iloc[0]['volume']
@@ -102,9 +100,7 @@ def vol_low_up():
             start_timestamp=start_timestamp,
             order=Stock1dKdata.timestamp.desc(),
         )
-        if k_data_list.empty:
-            continue
-        if len(k_data_list.index) < 3:
+        if k_data_list.empty or len(k_data_list.index) < 3:
             continue
         # 倒数第一天
         last_volume = k_data_list.iloc[0]['volume']
