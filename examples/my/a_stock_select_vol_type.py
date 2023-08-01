@@ -136,6 +136,6 @@ def get_stock_detail(code):
 if __name__ == "__main__":
     print("start select a stock...")
     # last_day_vol_low()
-    # vol_multiple()
-    vol_low_up()
+    vol_multiple()
+    # vol_low_up()
 
