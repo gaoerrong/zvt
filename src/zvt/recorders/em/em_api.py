@@ -686,6 +686,32 @@ def to_zvt_code(code):
     return code
 
 
+# 获取指定板块下对应的股票有哪些
+# FIXME 目前只获取中国A股市场板块对应的数据，其他市场的后面需要的时候再增加
+def get_block_stock(
+        block_code,
+        block_id, # 等于block表的id，也等于block表的entity_id
+        block_name,
+        exchange: Union[Exchange, str] = None,
+):
+    url = f"http://30.push2.eastmoney.com/api/qt/clist/get?cb=jQuery112403422879642592114_1695778139876&pn=1&pz=2000&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&wbp2u=|0|0|0|web&fid=f3&fs=b:{block_code}+f:!50&fields=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f24,f25,f22,f11,f62,f128,f136,f115,f152,f45&_=1695778139877"
+    resp = requests.get(url, headers=DEFAULT_HEADER)
+
+    resp.raise_for_status()
+
+    result = json_callback_param(resp.text)
+    data = result["data"]["diff"]
+    df = pd.DataFrame.from_records(data=data)
+
+    block_stock_df = pd.DataFrame(columns=["id", "entity_id","entity_type","exchange","code","name","stock_id","stock_code","stock_name"])
+
+    for index, row in df.iterrows():
+        temp_data = [f"{block_id}_{row['f12']}",f"{block_id}_{row['f12']}","block_stock",exchange,block_code,block_name,row["f12"],row["f12"],row["f14"]]
+        block_stock_df.loc[len(block_stock_df)] = temp_data
+
+    return block_stock_df
+
+
 if __name__ == "__main__":
     # from pprint import pprint
     # pprint(get_free_holder_report_dates(code='000338'))
@@ -714,7 +740,8 @@ if __name__ == "__main__":
     # df = get_kdata(entity_id="future_dce_I", level="1d")
     # print(df)
     # df = get_dragon_and_tiger(code="000989", start_date="2018-10-31")
-    df = get_dragon_and_tiger_list(start_date="2022-04-25")
+    # df = get_dragon_and_tiger_list(start_date="2022-04-25")
+    df = get_block_stock(block_code="BK1088",block_name="F5G概念",block_id="block_cn_BK1088",exchange="cn")
     print(df)
 # the __all__ is generated
 __all__ = [
@@ -744,4 +771,5 @@ __all__ = [
     "to_em_level_flag",
     "to_em_sec_id",
     "to_zvt_code",
+    "get_block_stock",
 ]

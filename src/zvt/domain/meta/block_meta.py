@@ -18,6 +18,7 @@ class Block(BlockMetaBase, Portfolio):
     category = Column(String(length=64))
 
 
+@register_entity(entity_type="block_stock")
 class BlockStock(BlockMetaBase, PortfolioStock):
     __tablename__ = "block_stock"
 
