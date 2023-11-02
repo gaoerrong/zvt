@@ -12,6 +12,7 @@ from zvt.domain import (
     Stock1dKdata,
     Stockhk,
     Stockhk1dHfqKdata,
+    Stockhk1dKdata,
     Block,
     Block1dKdata,
     BlockCategory,
@@ -71,24 +72,24 @@ def record_stock_data(data_provider="em", entity_provider="em", sleeping_time=1)
     )
 
     # 报告新概念和行业
-    email_action = EmailInformer()
-    df = Block.query_data(
-        filters=[Block.category == BlockCategory.concept.value],
-        order=Block.list_date.desc(),
-        index="entity_id",
-        limit=5,
-    )
-
-    inform(
-        action=email_action,
-        entity_ids=df.index.tolist(),
-        target_date=current_date(),
-        title="report 新概念",
-        entity_provider=entity_provider,
-        entity_type="block",
-        em_group="关注板块",
-        em_group_over_write=True,
-    )
+    # email_action = EmailInformer()
+    # df = Block.query_data(
+    #     filters=[Block.category == BlockCategory.concept.value],
+    #     order=Block.list_date.desc(),
+    #     index="entity_id",
+    #     limit=5,
+    # )
+    #
+    # inform(
+    #     action=email_action,
+    #     entity_ids=df.index.tolist(),
+    #     target_date=current_date(),
+    #     title="report 新概念",
+    #     entity_provider=entity_provider,
+    #     entity_type="block",
+    #     em_group="关注板块",
+    #     em_group_over_write=True,
+    # )
 
 
 @sched.scheduled_job("cron", hour=16, minute=30, day_of_week="mon-fri")
@@ -96,9 +97,19 @@ def record_stockhk_data(data_provider="em", entity_provider="em", sleeping_time=
     # 港股标的
     run_data_recorder(domain=Stockhk, data_provider=data_provider, force_update=False)
     # 港股后复权行情
-    df = Stockhk.query_data(filters=[Stockhk.south == True], index="entity_id")
+    # df = Stockhk.query_data(filters=[Stockhk.south == True], index="entity_id")
+    # run_data_recorder(
+    #     domain=Stockhk1dHfqKdata,
+    #     entity_ids=df.index.tolist(),
+    #     data_provider=data_provider,
+    #     entity_provider=entity_provider,
+    #     day_data=True,
+    #     sleeping_time=sleeping_time,
+    # )
+    # 港股前复权行情
+    df = Stockhk.query_data(index="entity_id")
     run_data_recorder(
-        domain=Stockhk1dHfqKdata,
+        domain=Stockhk1dKdata,
         entity_ids=df.index.tolist(),
         data_provider=data_provider,
         entity_provider=entity_provider,
@@ -110,8 +121,10 @@ def record_stockhk_data(data_provider="em", entity_provider="em", sleeping_time=
 if __name__ == "__main__":
     init_log("kdata_runner.log")
 
+    # 拉取A股数据
     record_stock_data()
-    # record_stockhk_data()
+    # 拉取港股数据
+    record_stockhk_data()
 
     sched.start()
 

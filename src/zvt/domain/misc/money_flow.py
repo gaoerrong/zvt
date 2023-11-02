@@ -53,7 +53,9 @@ class StockMoneyFlow(MoneyFlowBase, Mixin):
 
     #: 收盘价
     close = Column(Float)
+    # 涨跌幅
     change_pct = Column(Float)
+    # 换手率
     turnover_rate = Column(Float)
 
     #: 净流入
