@@ -8,6 +8,7 @@ import datetime
 import pandas as pd
 import mplfinance as mpf
 import os
+import talib
 
 
 def stock_select(strategy_type: int, **p_kv):
@@ -37,9 +38,16 @@ def stock_select(strategy_type: int, **p_kv):
         if k_data_list.empty or len(k_data_list.index) < 30:
             continue
         matched = False
+        
+        #### 执行具体的选股策略
         if strategy_type == 1:
-            matched = wave_band_select(k_data_list)
+            matched = wave_band_select(k_data_list, p_kv['n'])
+        elif strategy_type == 2:
+            matched = ema_select(k_data_list,p_kv)
+        elif strategy_type == 3:
+            matched = vol_multiple_select(k_data_list)
 
+        ## end 选股策略切换逻辑
         if matched:
             new_data = pd.DataFrame([{'code': row['code'], 'name': row['name']}])
             matched_data = pd.concat([matched_data, new_data], ignore_index=True)
@@ -81,42 +89,135 @@ def plot_candlestick(kline_data, title, output_filename):
              savefig=output_filename)
 
 
+# ---------------------------------------------------------------------------------------------------------------------
 # 波段选股方式，先有几天的下降，然后当天比前一天的收盘价要高
-# 1.第一天，第二天，第三天股价在下降。
-# 2.第四天的数据中取open和close的最大值大于第三天的数据中取open和close的最小值
-# 2.第五天的数据中取open和close的最大值大于第四天的数据中取open和close的最小值
+# 你是一名Python股票量化编程专家。
+# 我有如下数据结构的日线级别的k线，k线中包含了n天的数据
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# 代码规则如下：
+# 1.从第一天到第n-2天股价在每天都在下降。
+# 2.第n-1天的数据中取open和close的最大值大于第n-2天的数据中取open和close的最小值
+# 2.第n天的数据中取open和close的最大值大于第n-1天的数据中取open和close的最小值
 # 4.如果符合上述全部逻辑，那么打印符合条件
-def wave_band_select(k_data_list):
+def wave_band_select_1(k_data_list, n):
     # 检查是否符合逻辑
-    last_five_data = k_data_list[-5:]
-    if last_five_data.iloc[0]['close'] > last_five_data.iloc[1]['close'] > last_five_data.iloc[2]['close']:
-        # 检查第四天的数据
-        fourth_day = last_five_data.iloc[3]
-        third_day = last_five_data.iloc[2]
-        # 检查第四天的最大值是否大于第三天的最小值
-        if max(fourth_day['open'], fourth_day['close']) > min(third_day['open'], third_day['close']):
-            # 检查第五天的数据
-            fifth_day = last_five_data.iloc[4]
-            fourth_day = last_five_data.iloc[3]
-            # 检查第五天的最大值是否大于第四天的最小值
-            if max(fifth_day['open'], fifth_day['close']) > min(fourth_day['open'], fourth_day['close']):
-                # 符合条件，打印结果
-                return True
+    kline_data = k_data_list[-n:]
+    for i in range(n - 2):
+        if kline_data[i]['close'] >= kline_data[i + 1]['close']:
+            return False
 
-    return False
+        # 检查第n-1天的最大值是否大于第n-2天的最小值
+    if not min(kline_data[n - 2]['open'], kline_data[n - 2]['close']) <= max(kline_data[n - 1]['open'],
+                                                                         kline_data[n - 1]['close']):
+        return False
 
+        # 检查第n天的最大值是否大于第n-1天的最小值
+    if not min(kline_data[n - 1]['open'], kline_data[n - 1]['close']) <= max(kline_data[n]['open'], kline_data[n]['close']):
+        return False
+
+    return True
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 你是一名Python股票量化编程专家。
+# 我有如下数据结构的日线级别的k线，k线中包含了n天的数据
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# 代码规则如下：
+# 1.从第一天到第n-1天股价在每天都在下降。
+# 2.第n天的数据中取open和close的最大值大于第n-1天的数据中取open和close的最小值
+# 4.如果符合上述全部逻辑，那么打印符合条件
+# FIXME 这种方式适合a股中的板块选股,n选择3,4,5 可能选择4,5最合适了
+def wave_band_select_2(k_data_list, n):
+    # 检查是否符合逻辑
+    kline_data = k_data_list[-n:]
+    for i in range(n - 1):
+        if kline_data[i]['close'] >= kline_data[i + 1]['close']:
+            return False
+
+        # 检查第n天的最大值是否大于第n-1天的最小值
+    if not min(kline_data[n - 1]['open'], kline_data[n - 1]['close']) <= max(kline_data[n]['open'], kline_data[n]['close']):
+        return False
+
+    return True
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # 连续多天下降，然后当天形成T
 # T形的规则是：?
 # 1.最高与收盘相差小于0.5。最低与收盘相差大于1。（这样有个弊端是会过滤掉很多小盘股）
 # 2.最高等于收盘，最低与收盘相差大于1
 
-#均线 5>10>20 or 10>20>30
+# ---------------------------------------------------------------------------------------------------------------------
+#均线 5>10>15 or 10>20>30
+def ema_select(kline_data,**p_kv):
+    closing_prices = kline_data['close']
+    ma5 = talib.EMA(closing_prices, timeperiod=5)
+    ma10 = talib.EMA(closing_prices, timeperiod=10)
+    ma15 = talib.EMA(closing_prices, timeperiod=15)
+    ma20 = talib.EMA(closing_prices, timeperiod=20)
+    ma30 = talib.EMA(closing_prices, timeperiod=30)
 
+    entity_type = p_kv['entity_type']
+    # a 股中使用5,10，,15
+    if entity_type in ["block","stock"]:
+        n = 3
+        # 先判断最新的三天是否满足5日>10日>15日
+        for i in range(len(ma5) - n, len(ma5)):
+            if ma5[i] <= ma10[i] or ma10[i] <= ma15[i]:
+                return False
+
+        # 在判断之前的几天是30日>20日>10日
+        for i in range(len(ma5) - 3 * n, len(ma5) - 2 * n):
+            if ma5[i] >= ma10[i] or ma10[i] >= ma15[i]:
+                return False
+    # 港股和美股
+    else:
+        n = 3
+        # 先判断最新的三天是否满足10日>20日>30日
+        for i in range(len(ma10) - n, len(ma10)):
+            if ma10[i] <= ma20[i] or ma20[i] <= ma30[i]:
+                return False
+
+        # 在判断之前的几天是30日>20日>10日
+        for i in range(len(ma10) - 3*n, len(ma10) - 2*n):
+            if ma10[i] >= ma20[i] or ma20[i] >= ma30[i]:
+                return False
+
+    return True
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # 最近几天之内有一天的成交量特别大。需要接下来一段时间去关注。
+# 你是一名Python股票量化编程专家。
+# 我有如下数据结构的日线级别的k线，k线中包含了n天的数据
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# 代码规则如下：
+# 1.最近5天中有一天的成交量是30日成交量ma的3倍
+def vol_multiple_select(k_data_list):
+    if len(k_data_list) < 60:
+        return False
+    n = 30
+    multiple = 3
+    volume = k_data_list['volume']
+    # 计算30日成交量均线（MA）
+    ma_volume = talib.MA(volume, timeperiod=n)[-1]
+
+    # 检查最近5天中是否有一天的成交量是30日成交量均线的3倍
+    for i in range(n - 5, n):
+        if k_data_list[i]['volume'] >= multiple * ma_volume:
+            return True
+
+    return False
+# ---------------------------------------------------------------------------------------------------------------------
+
+
+# 前几天一直在下降，某一天突然大于 5，10，,15日均线
 
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    stock_select(1, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    stock_select(1, n=7, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股
-    # stock_select(1, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    # stock_select(1, n=7, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
