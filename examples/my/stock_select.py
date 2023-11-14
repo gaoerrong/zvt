@@ -3,18 +3,19 @@ from zvt.domain import (
     Stock1dKdata,
     StockDetail,
     Block1dKdata,
+    Stockus1dKdata,
 )
 import datetime
 import pandas as pd
 import mplfinance as mpf
 import os
 import talib
+import matplotlib.pyplot as plt
 
 
 def stock_select(strategy_type: int, **p_kv):
     # 从db中查询多少天的数据
-    n = 60
-    user_data_size = 5
+    n = 100
     # 获取当前日期
     today = datetime.date.today()
     # 创建文件夹
@@ -40,12 +41,17 @@ def stock_select(strategy_type: int, **p_kv):
         matched = False
         
         #### 执行具体的选股策略
-        if strategy_type == 1:
-            matched = wave_band_select(k_data_list, p_kv['n'])
+        if strategy_type == 0:
+            temp = p_kv['n']
+            matched = wave_band_select_2(k_data_list, temp)
+        elif strategy_type == 1:
+            matched = wave_band_select_1(k_data_list, p_kv['n'])
         elif strategy_type == 2:
-            matched = ema_select(k_data_list,p_kv)
+            matched = ema_select(k_data_list, p_kv['entity_type'])
         elif strategy_type == 3:
             matched = vol_multiple_select(k_data_list)
+        elif strategy_type == 4:
+            matched = t_or_baoyun_pattern_select(k_data_list)
 
         ## end 选股策略切换逻辑
         if matched:
@@ -83,10 +89,34 @@ def plot_candlestick(kline_data, title, output_filename):
 
     # 调用make_mpf_style函数，自定义图表样式
     # 函数返回一个字典，查看字典包含的数据，按照需求和规范调整参数
-    style = mpf.make_mpf_style(base_mpl_style="ggplot", marketcolors=mc)
+    plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
+    style = mpf.make_mpf_style(base_mpl_style="ggplot", marketcolors=mc, rc={'font.family': 'Arial Unicode MS'})
     # 绘制蜡烛图
     mpf.plot(df_new, type='candle', title=title, style=style, volume=True, mav=(5,10,20), ylabel="price", figratio=(12, 6),
              savefig=output_filename)
+
+
+###########################################################
+# 你是一名Python股票量化编程专家。
+# 我有如下数据结构的日线级别的k线，k线中包含了n天的数据
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# 帮忙实现一下如下规则的代码
+# 1.帮我计算每天的30日ema。并且用dict来保存，key是日期，value是计算出来的结果值
+# 2.请使用talib库
+
+# 计算ema，保存到dict中，key是日期，value是这一天的值
+def calculate_ema(kline_data, n):
+    ema_dict = {}
+    close_prices = [data['close'] for data in kline_data]
+    timestamps = [data['timestamp'] for data in kline_data]
+
+    ema = talib.EMA(close_prices, timeperiod=n)
+
+    for i in range(len(timestamps)):
+        ema_dict[timestamps[i]] = ema[i]
+
+    return ema_dict
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -124,33 +154,76 @@ def wave_band_select_1(k_data_list, n):
 # kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
 #
 # 代码规则如下：
-# 1.从第一天到第n-1天股价在每天都在下降。
+# 1.从第一天到第n-2天股价在每天都在下降。
 # 2.第n天的数据中取open和close的最大值大于第n-1天的数据中取open和close的最小值
 # 4.如果符合上述全部逻辑，那么打印符合条件
-# FIXME 这种方式适合a股中的板块选股,n选择3,4,5 可能选择4,5最合适了
+# FIXME 这种方式适合a股中的板块选股,n选择3,4,5 可能选择4,5最合适了（4，5的过滤性太差了），试一试5天，或者7天
 def wave_band_select_2(k_data_list, n):
     # 检查是否符合逻辑
     kline_data = k_data_list[-n:]
-    for i in range(n - 1):
-        if kline_data[i]['close'] >= kline_data[i + 1]['close']:
+    for i in range(n - 2):
+        if kline_data.iloc[i]['close'] <= kline_data.iloc[i + 1]['close']:
             return False
 
-        # 检查第n天的最大值是否大于第n-1天的最小值
-    if not min(kline_data[n - 1]['open'], kline_data[n - 1]['close']) <= max(kline_data[n]['open'], kline_data[n]['close']):
-        return False
+    # 检查第n天的最大值是否大于第n-1天的最小值
+    previous_candle = kline_data.iloc[n - 2]
+    current_candle = kline_data.iloc[n - 1]
 
-    return True
+    if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
+        return True
+
+    return False
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# 连续多天下降，然后当天形成T
+# 连续多天下降，然后当天形成T或者当天的形态是包含前一天的股价形态的
 # T形的规则是：?
 # 1.最高与收盘相差小于0.5。最低与收盘相差大于1。（这样有个弊端是会过滤掉很多小盘股）
 # 2.最高等于收盘，最低与收盘相差大于1
+# 你是一名Python股票量化编程专家。
+# 我有如下数据结构的日线级别的k线，k线中包含了n天的数据
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# 代码规则如下：
+# 1.从第一天到第n-1天的股价都在下降，下降的判断依据是每天的开盘价和收盘价低于当天的30日ema。ema的数据我已经提前准备好了，放在了ema_dict中，请从这里面获取对应天的ema数据
+# 2.第n天K线的开盘价高于第n-1天K线的最高价。第n天K线的收盘价低于第n-1天K线的最低价。
+# 3.第n天的开盘价与最高价相差小于0.5，开盘价与收盘价相差小于0.5，最低价与收盘价相差大于1
+# 4.其中第2点规则和第3点规则，满足其中一条规则就打印出来满足条件，否则打印出来不满足条件
+
+def t_or_baoyun_pattern_select(kline_data):
+    n = len(kline_data)
+
+    if n < 2:
+        return False
+    ema_dict = calculate_ema(kline_data,30)
+
+    # 判断前n-1天的股价是否下降
+    for i in range(n - 2):
+        if kline_data[i]['open'] >= ema_dict[kline_data[i]['timestamp']] or kline_data[i]['close'] >= ema_dict[kline_data[i]['timestamp']]:
+            return False
+
+    previous_candle = kline_data[n - 1]
+    current_candle = kline_data[n]
+
+    # 第二条规则
+    if previous_candle['close'] < previous_candle['open'] and \
+            current_candle['open'] > previous_candle['high'] and \
+            current_candle['close'] < previous_candle['low']:
+        return True
+    # 第三条规则
+
+    # 判断第n天的开盘价和收盘价是否满足条件
+    if abs(current_candle['open'] - current_candle['high']) < 0.5 and \
+            abs(current_candle['open'] - current_candle['close']) < 0.5 or \
+            abs(current_candle['low'] - current_candle['close']) > 1:
+        return True
+
+    return False
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 #均线 5>10>15 or 10>20>30
-def ema_select(kline_data,**p_kv):
+def ema_select(kline_data, entity_type):
     closing_prices = kline_data['close']
     ma5 = talib.EMA(closing_prices, timeperiod=5)
     ma10 = talib.EMA(closing_prices, timeperiod=10)
@@ -158,7 +231,6 @@ def ema_select(kline_data,**p_kv):
     ma20 = talib.EMA(closing_prices, timeperiod=20)
     ma30 = talib.EMA(closing_prices, timeperiod=30)
 
-    entity_type = p_kv['entity_type']
     # a 股中使用5,10，,15
     if entity_type in ["block","stock"]:
         n = 3
@@ -167,7 +239,7 @@ def ema_select(kline_data,**p_kv):
             if ma5[i] <= ma10[i] or ma10[i] <= ma15[i]:
                 return False
 
-        # 在判断之前的几天是30日>20日>10日
+        # 在判断之前的几天是15日>10日>5日
         for i in range(len(ma5) - 3 * n, len(ma5) - 2 * n):
             if ma5[i] >= ma10[i] or ma10[i] >= ma15[i]:
                 return False
@@ -218,6 +290,8 @@ def vol_multiple_select(k_data_list):
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    stock_select(1, n=7, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    stock_select(0, n=5, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股
     # stock_select(1, n=7, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    # 用于美股选股
+    # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
