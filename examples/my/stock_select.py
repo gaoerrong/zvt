@@ -133,17 +133,17 @@ def calculate_ema(kline_data, n):
 def wave_band_select_1(k_data_list, n):
     # 检查是否符合逻辑
     kline_data = k_data_list[-n:]
-    for i in range(n - 2):
-        if kline_data[i]['close'] >= kline_data[i + 1]['close']:
+    for i in range(n - 3):
+        if kline_data.iloc[i]['close'] <= kline_data.iloc[i + 1]['close']:
             return False
 
         # 检查第n-1天的最大值是否大于第n-2天的最小值
-    if not min(kline_data[n - 2]['open'], kline_data[n - 2]['close']) <= max(kline_data[n - 1]['open'],
-                                                                         kline_data[n - 1]['close']):
+    if not min(kline_data.iloc[n - 3]['open'], kline_data.iloc[n - 3]['close']) <= max(kline_data.iloc[n - 2]['open'],
+                                                                         kline_data.iloc[n - 2]['close']):
         return False
 
         # 检查第n天的最大值是否大于第n-1天的最小值
-    if not min(kline_data[n - 1]['open'], kline_data[n - 1]['close']) <= max(kline_data[n]['open'], kline_data[n]['close']):
+    if not min(kline_data.iloc[n - 2]['open'], kline_data.iloc[n - 2]['close']) <= max(kline_data.iloc[n-1]['open'], kline_data.iloc[n-1]['close']):
         return False
 
     return True
@@ -233,31 +233,52 @@ def ema_select(kline_data, entity_type):
 
     # a 股中使用5,10，,15
     if entity_type in ["block","stock"]:
-        n = 3
-        # 先判断最新的三天是否满足5日>10日>15日
-        for i in range(len(ma5) - n, len(ma5)):
-            if ma5[i] <= ma10[i] or ma10[i] <= ma15[i]:
-                return False
+        n = 10
+        last_n_ma5 = ma5.iloc[-n:]
+        last_n_ma10 = ma10.iloc[-n:]
+        last_n_ma15 = ma15.iloc[-n:]
+        # 获取最近3天的ema均线数据
+        recent_ema5 = last_n_ma5[-3:]
+        recent_ema10 = last_n_ma10[-3:]
+        recent_ema15 = last_n_ma15[-3:]
 
-        # 在判断之前的几天是15日>10日>5日
-        for i in range(len(ma5) - 3 * n, len(ma5) - 2 * n):
-            if ma5[i] >= ma10[i] or ma10[i] >= ma15[i]:
-                return False
+        # 获取3天前的ema均线数据
+        prev_ema5 = last_n_ma5[-n:-3]
+        prev_ema10 = last_n_ma10[-n:-3]
+        prev_ema15 = last_n_ma15[-n:-3]
+
+        # 检查最近3天的ema均线是否满足条件
+        if all(recent_ema5.iloc[i] > recent_ema10.iloc[i] > recent_ema15.iloc[i] for i in range(3)):
+            # 检查3天前的ema均线是否不满足条件
+            conditions = [prev_ema5.iloc[i] > prev_ema10.iloc[i] > prev_ema15.iloc[i] for i in range(n - 3)]
+            # 两个条件，如果都为false，或者，这个序列中又有false，又有true，那么返回true
+            if not any(conditions) or (any(conditions) and not all(conditions)):
+                return True
     # 港股和美股
     else:
-        n = 3
-        # 先判断最新的三天是否满足10日>20日>30日
-        for i in range(len(ma10) - n, len(ma10)):
-            if ma10[i] <= ma20[i] or ma20[i] <= ma30[i]:
-                return False
+        n = 10
+        last_n_ma10 = ma10.iloc[-n:]
+        last_n_ma20 = ma20.iloc[-n:]
+        last_n_ma30 = ma30.iloc[-n:]
+        # 获取最近3天的ema均线数据
+        recent_ema10 = last_n_ma10[-3:]
+        recent_ema20 = last_n_ma20[-3:]
+        recent_ema30 = last_n_ma30[-3:]
 
-        # 在判断之前的几天是30日>20日>10日
-        for i in range(len(ma10) - 3*n, len(ma10) - 2*n):
-            if ma10[i] >= ma20[i] or ma20[i] >= ma30[i]:
-                return False
+        # 获取3天前的ema均线数据
+        prev_ema10 = last_n_ma10[-n:-3]
+        prev_ema20 = last_n_ma20[-n:-3]
+        prev_ema30 = last_n_ma30[-n:-3]
 
-    return True
+        # 检查最近3天的ema均线是否满足条件
+        if all(recent_ema10.iloc[i] > recent_ema20.iloc[i] > recent_ema30.iloc[i] for i in range(3)):
+            # 检查3天前的ema均线是否不满足条件
+            conditions = [prev_ema10.iloc[i] > prev_ema20.iloc[i] > prev_ema30.iloc[i] for i in range(n - 3)]
+            # 两个条件，如果都为false，或者，这个序列中又有false，又有true，那么返回true
+            if not any(conditions) or (any(conditions) and not all(conditions)):
+                return True
 
+        return False
 
 # ---------------------------------------------------------------------------------------------------------------------
 # 最近几天之内有一天的成交量特别大。需要接下来一段时间去关注。
@@ -290,8 +311,8 @@ def vol_multiple_select(k_data_list):
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    stock_select(0, n=5, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
-    # a股正股选股
+    # stock_select(0, n=5, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
     # stock_select(1, n=7, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股
-    # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
+    stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
