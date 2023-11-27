@@ -13,6 +13,22 @@ import talib
 import matplotlib.pyplot as plt
 
 
+def test_stock_select():
+    code = 'BK0438'
+    data_schema = Block1dKdata
+    start_timestamp = datetime.strptime('2023-10-12', '%Y-%m-%d')
+    end_timestamp = datetime.strptime('2023-10-24', '%Y-%m-%d')
+    order = Block1dKdata.timestamp.asc()
+    k_data_list = get_data(
+        data_schema=data_schema,
+        code=code,
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+        order=order,
+    )
+    result = wave_band_select_3(k_data_list,7,80)
+    print(f"计算结果: {result}")
+
 def stock_select(strategy_type: int, **p_kv):
     # 从db中查询多少天的数据
     n = 100
@@ -43,7 +59,7 @@ def stock_select(strategy_type: int, **p_kv):
         #### 执行具体的选股策略
         if strategy_type == 0:
             temp = p_kv['n']
-            matched = wave_band_select_2(k_data_list, temp)
+            matched = wave_band_select_3(k_data_list, temp, p_kv['rate_threshold'])
         elif strategy_type == 1:
             matched = wave_band_select_1(k_data_list, p_kv['n'])
         elif strategy_type == 2:
@@ -174,6 +190,31 @@ def wave_band_select_2(k_data_list, n):
 
     return False
 
+# ---------------------------------------------------------------------------------------------------------------------
+# 主要适用于a股的板块选股
+# 代码规则
+# 1.计算n-2中k线中每一天与第二天的收盘价对比是上升还是下降。保存到序列中
+# 2.计算序列中下降的占比比例
+# 3.计算最后一天的价格是比前一天的价格是上涨的
+def wave_band_select_3(k_data_list, n, rate_threshold):
+    # 检查是否符合逻辑
+    kline_data = k_data_list[-n:]
+    conditions = [kline_data.iloc[i]['close'] > kline_data.iloc[i + 1]['close'] for i in range(n - 2)]
+    # 计算下降的占比
+    down_count = sum(conditions)  # 计算 True 的数量,也就是下降的占比
+    total_count = len(conditions)  # 计算总数量
+    down_percentage = down_count / total_count * 100  # 计算 True 的占比
+    # 如果下降的占比 比 阈值小，那么就返回不满足
+    if down_percentage < rate_threshold:
+        return False
+    # 检查第n天的最大值是否大于第n-1天的最小值
+    previous_candle = kline_data.iloc[n - 2]
+    current_candle = kline_data.iloc[n - 1]
+
+    if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
+        return True
+
+    return False
 
 # ---------------------------------------------------------------------------------------------------------------------
 # 连续多天下降，然后当天形成T或者当天的形态是包含前一天的股价形态的
@@ -315,4 +356,5 @@ if __name__ == "__main__":
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
     # stock_select(1, n=7, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股
-    stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
+    # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
+    test_stock_select()
