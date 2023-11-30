@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 def test_stock_select():
     code = 'BK0438'
     data_schema = Block1dKdata
-    start_timestamp = datetime.strptime('2023-10-12', '%Y-%m-%d')
-    end_timestamp = datetime.strptime('2023-10-24', '%Y-%m-%d')
+    start_timestamp = datetime.datetime.strptime('2023-10-12', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2023-10-24', '%Y-%m-%d')
     order = Block1dKdata.timestamp.asc()
     k_data_list = get_data(
         data_schema=data_schema,
@@ -211,7 +211,8 @@ def wave_band_select_3(k_data_list, n, rate_threshold):
     previous_candle = kline_data.iloc[n - 2]
     current_candle = kline_data.iloc[n - 1]
 
-    if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
+    # if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
+    if current_candle['close'] > previous_candle['open']:
         return True
 
     return False
@@ -353,8 +354,9 @@ if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
     # stock_select(0, n=5, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    # stock_select(1, n=7, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股
     # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
-    test_stock_select()
+    # test_stock_select()
