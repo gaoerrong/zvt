@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 
 
 def test_stock_select():
-    code = 'BK0438'
+    code = 'BK1015'
     data_schema = Block1dKdata
-    start_timestamp = datetime.datetime.strptime('2023-10-12', '%Y-%m-%d')
-    end_timestamp = datetime.datetime.strptime('2023-10-24', '%Y-%m-%d')
+    start_timestamp = datetime.datetime.strptime('2023-11-12', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2023-12-01', '%Y-%m-%d')
     order = Block1dKdata.timestamp.asc()
     k_data_list = get_data(
         data_schema=data_schema,
@@ -26,7 +26,7 @@ def test_stock_select():
         end_timestamp=end_timestamp,
         order=order,
     )
-    result = wave_band_select_3(k_data_list,7,80)
+    result = wave_band_select_3(k_data_list,9,80)
     print(f"计算结果: {result}")
 
 def stock_select(strategy_type: int, **p_kv):
@@ -199,7 +199,7 @@ def wave_band_select_2(k_data_list, n):
 def wave_band_select_3(k_data_list, n, rate_threshold):
     # 检查是否符合逻辑
     kline_data = k_data_list[-n:]
-    conditions = [kline_data.iloc[i]['close'] > kline_data.iloc[i + 1]['close'] for i in range(n - 2)]
+    conditions = [max(kline_data.iloc[i]['close'], kline_data.iloc[i]['open']) > max(kline_data.iloc[i + 1]['close'],kline_data.iloc[i + 1]['open']) for i in range(n - 2)]
     # 计算下降的占比
     down_count = sum(conditions)  # 计算 True 的数量,也就是下降的占比
     total_count = len(conditions)  # 计算总数量
@@ -211,7 +211,9 @@ def wave_band_select_3(k_data_list, n, rate_threshold):
     previous_candle = kline_data.iloc[n - 2]
     current_candle = kline_data.iloc[n - 1]
 
+    # 这个规则相对会宽松一些，未来上涨的概率小一些，风险大一些，但是机器过滤性差，需要人工做比较多的判断
     # if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
+    # 这个规则相对严格一些，未来上涨的概率会大一些，风险小一些。但是机器会过滤掉一些。需要人工判断的少
     if current_candle['close'] > previous_candle['open']:
         return True
 
@@ -353,10 +355,9 @@ def vol_multiple_select(k_data_list):
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    # stock_select(0, n=5, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
-    stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    # stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    # stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股
     # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
-    # test_stock_select()
+    test_stock_select()
