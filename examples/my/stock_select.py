@@ -11,6 +11,7 @@ import mplfinance as mpf
 import os
 import talib
 import matplotlib.pyplot as plt
+import numpy
 
 
 def test_stock_select():
@@ -355,9 +356,9 @@ def vol_multiple_select(k_data_list):
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    # stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    # stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股
     # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
-    test_stock_select()
+    # test_stock_select()
