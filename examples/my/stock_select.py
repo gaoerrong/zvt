@@ -1,3 +1,5 @@
+import numpy as np
+
 from zvt.contract.api import get_entities, get_data
 from zvt.domain import (
     Stock1dKdata,
@@ -15,11 +17,17 @@ import numpy
 
 
 def test_stock_select():
-    code = 'BK1015'
-    data_schema = Block1dKdata
-    start_timestamp = datetime.datetime.strptime('2023-11-12', '%Y-%m-%d')
-    end_timestamp = datetime.datetime.strptime('2023-12-01', '%Y-%m-%d')
-    order = Block1dKdata.timestamp.asc()
+    # code = 'BK1015'
+    # data_schema = Block1dKdata
+    # order = Block1dKdata.timestamp.asc()
+
+    code = 'V'
+    data_schema = Stockus1dKdata
+    order = Stockus1dKdata.timestamp.asc()
+
+    start_timestamp = datetime.datetime.strptime('2023-08-01', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2023-11-06', '%Y-%m-%d')
+
     k_data_list = get_data(
         data_schema=data_schema,
         code=code,
@@ -27,7 +35,7 @@ def test_stock_select():
         end_timestamp=end_timestamp,
         order=order,
     )
-    result = wave_band_select_3(k_data_list,9,80)
+    result = ema_select(k_data_list, 'stockus')
     print(f"计算结果: {result}")
 
 def stock_select(strategy_type: int, **p_kv):
@@ -58,16 +66,16 @@ def stock_select(strategy_type: int, **p_kv):
         matched = False
         
         #### 执行具体的选股策略
-        if strategy_type == 0:
+        if strategy_type == "wave_band_3":
             temp = p_kv['n']
             matched = wave_band_select_3(k_data_list, temp, p_kv['rate_threshold'])
-        elif strategy_type == 1:
+        elif strategy_type == "wave_band_1":
             matched = wave_band_select_1(k_data_list, p_kv['n'])
-        elif strategy_type == 2:
+        elif strategy_type == "ema":
             matched = ema_select(k_data_list, p_kv['entity_type'])
-        elif strategy_type == 3:
+        elif strategy_type == "vol":
             matched = vol_multiple_select(k_data_list)
-        elif strategy_type == 4:
+        elif strategy_type == "t":
             matched = t_or_baoyun_pattern_select(k_data_list)
 
         ## end 选股策略切换逻辑
@@ -270,6 +278,7 @@ def t_or_baoyun_pattern_select(kline_data):
 #均线 5>10>15 or 10>20>30
 def ema_select(kline_data, entity_type):
     closing_prices = kline_data['close']
+    k_line_data_len = len(kline_data)
     ma5 = talib.EMA(closing_prices, timeperiod=5)
     ma10 = talib.EMA(closing_prices, timeperiod=10)
     ma15 = talib.EMA(closing_prices, timeperiod=15)
@@ -278,49 +287,48 @@ def ema_select(kline_data, entity_type):
 
     # a 股中使用5,10，,15
     if entity_type in ["block","stock"]:
-        n = 10
-        last_n_ma5 = ma5.iloc[-n:]
-        last_n_ma10 = ma10.iloc[-n:]
-        last_n_ma15 = ma15.iloc[-n:]
-        # 获取最近3天的ema均线数据
-        recent_ema5 = last_n_ma5[-3:]
-        recent_ema10 = last_n_ma10[-3:]
-        recent_ema15 = last_n_ma15[-3:]
+        # 最新一天的均线值
+        now_ema5 = ma5.iloc[k_line_data_len - 1]
+        now_ema10 = ma10.iloc[k_line_data_len - 1]
+        now_ema15 = ma15.iloc[k_line_data_len - 1]
+        # 获取最近n天的ema均线数据
+        pre_n_day = 6
+        start_index = k_line_data_len - pre_n_day
+        end_index = k_line_data_len - 1
+        pre_n_ema5 = ma5[start_index:end_index]
+        pre_n_ema10 = ma10[start_index:end_index]
+        pre_n_ema15 = ma15[start_index:end_index]
 
-        # 获取3天前的ema均线数据
-        prev_ema5 = last_n_ma5[-n:-3]
-        prev_ema10 = last_n_ma10[-n:-3]
-        prev_ema15 = last_n_ma15[-n:-3]
-
-        # 检查最近3天的ema均线是否满足条件
-        if all(recent_ema5.iloc[i] > recent_ema10.iloc[i] > recent_ema15.iloc[i] for i in range(3)):
-            # 检查3天前的ema均线是否不满足条件
-            conditions = [prev_ema5.iloc[i] > prev_ema10.iloc[i] > prev_ema15.iloc[i] for i in range(n - 3)]
-            # 两个条件，如果都为false，或者，这个序列中又有false，又有true，那么返回true
-            if not any(conditions) or (any(conditions) and not all(conditions)):
+        # 最新一天的均线满足ema5 > ema10 > ema15
+        if now_ema5 > now_ema10 > now_ema15:
+            # 检查n天前的ma均线是否不满足条件
+            conditions = [pre_n_ema5.iloc[i] > pre_n_ema10.iloc[i] > pre_n_ema15.iloc[i] for i in
+                          range(len(pre_n_ema5))]
+            # 如果conditions中包含False，那么就说明刚满足条件，可以进入观察列表
+            if False in conditions:
                 return True
+
+        return False
     # 港股和美股
     else:
-        n = 10
-        last_n_ma10 = ma10.iloc[-n:]
-        last_n_ma20 = ma20.iloc[-n:]
-        last_n_ma30 = ma30.iloc[-n:]
-        # 获取最近3天的ema均线数据
-        recent_ema10 = last_n_ma10[-3:]
-        recent_ema20 = last_n_ma20[-3:]
-        recent_ema30 = last_n_ma30[-3:]
+        # 最新一天的均线值
+        now_ema10 = ma10.iloc[k_line_data_len - 1]
+        now_ema20 = ma20.iloc[k_line_data_len - 1]
+        now_ema30 = ma30.iloc[k_line_data_len - 1]
+        # 获取最近n天的ema均线数据
+        pre_n_day = 6
+        start_index = k_line_data_len - pre_n_day
+        end_index = k_line_data_len - 1
+        pre_n_ema10 = ma10[start_index:end_index]
+        pre_n_ema20 = ma20[start_index:end_index]
+        pre_n_ema30 = ma30[start_index:end_index]
 
-        # 获取3天前的ema均线数据
-        prev_ema10 = last_n_ma10[-n:-3]
-        prev_ema20 = last_n_ma20[-n:-3]
-        prev_ema30 = last_n_ma30[-n:-3]
-
-        # 检查最近3天的ema均线是否满足条件
-        if all(recent_ema10.iloc[i] > recent_ema20.iloc[i] > recent_ema30.iloc[i] for i in range(3)):
-            # 检查3天前的ema均线是否不满足条件
-            conditions = [prev_ema10.iloc[i] > prev_ema20.iloc[i] > prev_ema30.iloc[i] for i in range(n - 3)]
-            # 两个条件，如果都为false，或者，这个序列中又有false，又有true，那么返回true
-            if not any(conditions) or (any(conditions) and not all(conditions)):
+        # 最新一天的均线满足ema10 > ema20 > ema30
+        if now_ema10 > now_ema20 > now_ema30:
+            # 检查n天前的ma均线是否不满足条件
+            conditions = [pre_n_ema10.iloc[i] > pre_n_ema20.iloc[i] > pre_n_ema30.iloc[i] for i in range(len(pre_n_ema10))]
+            # 如果conditions中包含False，那么就说明刚满足条件，可以进入观察列表
+            if False in conditions:
                 return True
 
         return False
@@ -333,18 +341,24 @@ def ema_select(kline_data, entity_type):
 #
 # 代码规则如下：
 # 1.最近5天中有一天的成交量是30日成交量ma的3倍
+# TODO  2.高成交量的收盘价要收于其交易区间的上半部分
 def vol_multiple_select(k_data_list):
-    if len(k_data_list) < 60:
+    k_data_len = len(k_data_list)
+    if k_data_len < 30:
         return False
-    n = 30
-    multiple = 3
-    volume = k_data_list['volume']
-    # 计算30日成交量均线（MA）
-    ma_volume = talib.MA(volume, timeperiod=n)[-1]
+    # 股价低于2美金的去掉，没价值
+    if k_data_list.iloc[k_data_len - 1]['close'] < 2:
+        return False
+    multiple = 2
+    volume = np.array(k_data_list['volume'])
+    # 计算10日成交量均线（MA）
+    ma10_volume = talib.MA(volume, timeperiod=10)
 
-    # 检查最近5天中是否有一天的成交量是30日成交量均线的3倍
-    for i in range(n - 5, n):
-        if k_data_list[i]['volume'] >= multiple * ma_volume:
+    # 检查最近6天中是否有一天的成交量是30日成交量均线的3倍
+    for i in range(k_data_len - 6, k_data_len):
+        k_data_temp = k_data_list.iloc[i]
+        ma_10_volume_temp = ma10_volume[i]
+        if k_data_temp['volume'] >= multiple * ma_10_volume_temp:
             return True
 
     return False
@@ -356,9 +370,11 @@ def vol_multiple_select(k_data_list):
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
-    stock_select(0, n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
+    # stock_select("wave_band_3", n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    stock_select(0, n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
-    # 用于美股选股
-    # stock_select(2, entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
+    # stock_select("wave_band_3", n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    # 用于美股选股  TODO 美股的选择上尽量选择日成交量在100w美元以上的
+    # 周末选股之后，进入观察列表，然后根据回调再次买入
+    # stock_select("ema", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
+    # stock_select("vol", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
     # test_stock_select()

@@ -21,6 +21,18 @@ def to_report_period_type(report_date):
     return None
 
 
+def to_us_report_period_type(report_type):
+    if "Q1" in report_type:
+        return ReportPeriod.season1.value
+    if "Q2" in report_type:
+        return ReportPeriod.season2.value
+    if "Q3" in report_type:
+        return ReportPeriod.season3.value
+    if "Q4" in report_type:
+        return ReportPeriod.season4.value
+    return None
+
+
 def get_recent_report_date(the_date=now_pd_timestamp(), step=0):
     the_date = to_pd_timestamp(the_date)
     assert step >= 0

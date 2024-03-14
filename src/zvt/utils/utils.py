@@ -36,6 +36,9 @@ def to_float(the_str, default=None):
         return default
     if the_str in none_values:
         return None
+    # 判断是否是float类型
+    if the_str in zero_values or isinstance(the_str, (int, float, complex)):
+        return the_str
 
     if "%" in the_str:
         return pct_to_float(the_str)

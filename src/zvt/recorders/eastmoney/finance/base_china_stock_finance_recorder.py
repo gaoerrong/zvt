@@ -171,6 +171,12 @@ class BaseChinaStockFinanceRecorder(EastmoneyTimestampsDataRecorder):
     def on_finish_entity(self, entity):
         super().on_finish_entity(entity)
 
+        # 美股的话跳过
+        if entity.entity_type == "stockus":
+            self.session.commit()
+            super().on_finish_entity(entity)
+            return
+
         if not self.fetch_jq_timestamp:
             return
 

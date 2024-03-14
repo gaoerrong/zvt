@@ -854,6 +854,8 @@ class FinanceFactor(FinanceBase, Mixin):
     #
     #: 基本每股收益(元)
     basic_eps = Column(Float)
+    # 基本每股收益同比
+    basic_eps_yoy = Column(Float)
     #: 扣非每股收益(元)
     deducted_eps = Column(Float)
     #: 稀释每股收益(元)
