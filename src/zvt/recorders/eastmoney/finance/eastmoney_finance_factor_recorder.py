@@ -247,14 +247,14 @@ class ChinaStockFinanceFactorRecorder(BaseChinaStockFinanceRecorder):
         #data_dict['Mgjyxjje'] = json_data['Mgjyxjje']
 
         if "OPERATE_INCOME" in json_data:
-            data_dict['Totalincome'] = json_data['OPERATE_INCOME'] #营业总收入
+            data_dict['Totalincome'] = json_data.get('OPERATE_INCOME') #营业总收入
         elif "TOTAL_INCOME" in json_data:
-            data_dict['Totalincome'] = json_data['TOTAL_INCOME']  # 营业总收入
+            data_dict['Totalincome'] = json_data.get('TOTAL_INCOME')  # 营业总收入
 
         if "OPERATE_INCOME_YOY" in json_data:
-            data_dict['Totalincomeyoy'] = json_data['OPERATE_INCOME_YOY']
+            data_dict['Totalincomeyoy'] = json_data.get('OPERATE_INCOME_YOY')
         elif "TOTAL_INCOME_YOY" in json_data:
-            data_dict['Totalincomeyoy'] = json_data['TOTAL_INCOME_YOY'] #营业总收入同比增长
+            data_dict['Totalincomeyoy'] = json_data.get('TOTAL_INCOME_YOY') #营业总收入同比增长
 
         data_dict['Grossprofit'] = json_data.get('GROSS_PROFIT') #毛利润
         data_dict['Parentnetprofit'] = json_data.get('PARENT_HOLDER_NETPROFIT') #归属净利润
