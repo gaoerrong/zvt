@@ -184,6 +184,9 @@ class ChinaStockFinanceFactorRecorder(BaseChinaStockFinanceRecorder):
             return None
         data_array = self.get_us_stock_finance_data(secucode)
 
+        if data_array is None:
+            return None
+
         timestamp_json_list = []
         for json_data in data_array:
             data_dict = {}

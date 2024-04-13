@@ -53,8 +53,13 @@ class EmailInformer(Informer):
             msg["Message-id"] = email.utils.make_msgid()
             msg["Date"] = email.utils.formatdate()
 
-            plain_text = MIMEText(body, _subtype="plain", _charset="UTF-8")
-            msg.attach(plain_text)
+            content_type = kwargs["content_type"]
+            if content_type == "html":
+                html_text = MIMEText(body, _subtype="html", _charset="UTF-8")
+                msg.attach(html_text)
+            else:
+                plain_text = MIMEText(body, _subtype="plain", _charset="UTF-8")
+                msg.attach(plain_text)
             smtp_client.sendmail(zvt_config["email_username"], to_user, msg.as_string())
         except Exception as e:
             self.logger.exception("send email failed", e)

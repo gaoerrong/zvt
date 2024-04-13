@@ -26,3 +26,5 @@ eastmoneypy~=0.1.1
 matplotlib~=3.7.1
 setuptools~=58.0.4
 mplfinance
+anthropic
+openai==1.0

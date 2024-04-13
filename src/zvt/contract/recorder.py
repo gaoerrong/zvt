@@ -404,7 +404,12 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
         raising_exception = None
         while True:
             count = len(unfinished_items)
+            is_finished = False
             for index, entity_item in enumerate(unfinished_items):
+                # 在拉取美股财报的时候用
+                if len(finished_items) >= count:
+                    is_finished = True
+                    break
                 try:
                     self.logger.info(f"run to {index + 1}/{count}")
 
@@ -523,6 +528,9 @@ class TimeSeriesDataRecorder(EntityEventRecorder):
             unfinished_items = set(unfinished_items) - set(finished_items)
 
             if len(unfinished_items) == 0:
+                break
+            # 在拉取美股财报的时候用
+            if is_finished:
                 break
 
         self.on_finish()
