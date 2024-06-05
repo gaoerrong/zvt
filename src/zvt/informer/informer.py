@@ -53,8 +53,7 @@ class EmailInformer(Informer):
             msg["Message-id"] = email.utils.make_msgid()
             msg["Date"] = email.utils.formatdate()
 
-            content_type = kwargs["content_type"]
-            if content_type == "html":
+            if 'content_type' in kwargs and kwargs["content_type"] == "html":
                 html_text = MIMEText(body, _subtype="html", _charset="UTF-8")
                 msg.attach(html_text)
             else:

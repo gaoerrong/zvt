@@ -124,7 +124,7 @@ if __name__ == "__main__":
     # 拉取A股数据
     record_stock_data()
     # 拉取港股数据
-    record_stockhk_data()
+    # record_stockhk_data()
 
     sched.start()
 

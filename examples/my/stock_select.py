@@ -6,6 +6,7 @@ from zvt.domain import (
     StockDetail,
     Block1dKdata,
     Stockus1dKdata,
+    BlockStock,
 )
 import datetime
 import pandas as pd
@@ -21,12 +22,16 @@ def test_stock_select():
     # data_schema = Block1dKdata
     # order = Block1dKdata.timestamp.asc()
 
-    code = 'V'
+    # code = '601179'
+    # data_schema = Stock1dKdata
+    # order = Stock1dKdata.timestamp.asc()
+
+    code = 'CPNG'
     data_schema = Stockus1dKdata
     order = Stockus1dKdata.timestamp.asc()
 
-    start_timestamp = datetime.datetime.strptime('2023-08-01', '%Y-%m-%d')
-    end_timestamp = datetime.datetime.strptime('2023-11-06', '%Y-%m-%d')
+    start_timestamp = datetime.datetime.strptime('2023-11-01', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2024-02-23', '%Y-%m-%d')
 
     k_data_list = get_data(
         data_schema=data_schema,
@@ -36,6 +41,7 @@ def test_stock_select():
         order=order,
     )
     result = ema_select(k_data_list, 'stockus')
+    # result = wave_band_select_3(k_data_list, 7,90)
     print(f"计算结果: {result}")
 
 def stock_select(strategy_type: int, **p_kv):
@@ -52,7 +58,7 @@ def stock_select(strategy_type: int, **p_kv):
     start_timestamp = today - delta
 
     # 创建空的DataFrame 用于保存结果
-    matched_data = pd.DataFrame(columns=['code', 'name'])
+    matched_data = pd.DataFrame(columns=['code', 'name', 'block'])
     entities = get_entities(entity_type=p_kv["entity_type"])
     for index, row in entities.iterrows():
         k_data_list = get_data(
@@ -80,12 +86,17 @@ def stock_select(strategy_type: int, **p_kv):
 
         ## end 选股策略切换逻辑
         if matched:
-            new_data = pd.DataFrame([{'code': row['code'], 'name': row['name']}])
+            # 只有a股输出板块
+            block = ''
+            if p_kv["entity_type"] == 'stock':
+                block = get_cn_stock_block(row['code'])
+
+            new_data = pd.DataFrame([{'code': row['code'], 'name': row['name'], 'block': block}])
             matched_data = pd.concat([matched_data, new_data], ignore_index=True)
             # 输出k线图
-            file_name = f"{output_dir}/{row['code']}_{row['name']}.png"
+            file_name = f"{output_dir}/{row['code']}_{row['name'].replace('/', '_')}.png"
             plot_candlestick(k_data_list, title=f"{row['code']}_{row['name']}", output_filename=file_name)
-            print(f"符合条件,code:{row['code']},name:{row['name']}")
+            print(f"符合条件,code:{row['code']},name:{row['name']},block:{block}")
         else:
             continue
 
@@ -93,6 +104,18 @@ def stock_select(strategy_type: int, **p_kv):
         select_result_file_name = f"{output_dir}/{p_kv['entity_type']}_select_result.xlsx"
         matched_data.to_excel(select_result_file_name, index=False)
 
+
+def get_cn_stock_block(stock_code):
+    filters = [BlockStock.stock_code == stock_code]
+    block_stock_df = get_data(
+        data_schema=BlockStock,
+        filters=filters
+    )
+    sorted_names = sorted(block_stock_df['name'])
+
+    # 使用下划线符号拼接排序后的 'name' 列元素
+    output_string = '_'.join(sorted_names)
+    return output_string
 # 绘制K线图
 def plot_candlestick(kline_data, title, output_filename):
     # 解析K线数据
@@ -200,11 +223,14 @@ def wave_band_select_2(k_data_list, n):
     return False
 
 # ---------------------------------------------------------------------------------------------------------------------
-# 主要适用于a股的板块选股
+# 主要适用于a股的选股。注意：这种股票在关注的时候，关注成交量，下跌的成交量应该逐步变小，或者倒数第二天应该是收盘于高位
 # 代码规则
 # 1.计算n-2中k线中每一天与第二天的收盘价对比是上升还是下降。保存到序列中
-# 2.计算序列中下降的占比比例
-# 3.计算最后一天的价格是比前一天的价格是上涨的
+# 2.计算序列中下降的占比比例,最好是大于90%
+# 3.计算最后一天的价格是比前一天的价格是上涨的：
+#    a)严格一点是最后一天的收盘价，大于前一天的max（开盘价和收盘价）
+#    b)不严格一点是收盘价，收于前一天的上半部分
+# 4.最后一天的成交量要放大，大于10日均线
 def wave_band_select_3(k_data_list, n, rate_threshold):
     # 检查是否符合逻辑
     kline_data = k_data_list[-n:]
@@ -220,10 +246,14 @@ def wave_band_select_3(k_data_list, n, rate_threshold):
     previous_candle = kline_data.iloc[n - 2]
     current_candle = kline_data.iloc[n - 1]
 
+    # 成交量ma10
+    volume_data = k_data_list['volume']
+    vol_ma10 = talib.EMA(volume_data, timeperiod=10)
+
     # 这个规则相对会宽松一些，未来上涨的概率小一些，风险大一些，但是机器过滤性差，需要人工做比较多的判断
     # if max(current_candle['open'], current_candle['close']) > min(previous_candle['open'], previous_candle['close']):
     # 这个规则相对严格一些，未来上涨的概率会大一些，风险小一些。但是机器会过滤掉一些。需要人工判断的少
-    if current_candle['close'] > previous_candle['open']:
+    if current_candle['close'] > max(previous_candle['open'], previous_candle['close']) and current_candle['volume'] > vol_ma10.iloc[-1]:
         return True
 
     return False
@@ -285,6 +315,9 @@ def ema_select(kline_data, entity_type):
     ma20 = talib.EMA(closing_prices, timeperiod=20)
     ma30 = talib.EMA(closing_prices, timeperiod=30)
 
+    # 成交量10日均线
+    volume_ma10 = talib.EMA(kline_data['volume'], timeperiod=10)
+
     # a 股中使用5,10，,15
     if entity_type in ["block","stock"]:
         # 最新一天的均线值
@@ -299,8 +332,8 @@ def ema_select(kline_data, entity_type):
         pre_n_ema10 = ma10[start_index:end_index]
         pre_n_ema15 = ma15[start_index:end_index]
 
-        # 最新一天的均线满足ema5 > ema10 > ema15
-        if now_ema5 > now_ema10 > now_ema15:
+        # 最新一天的均线满足ema5 > ema10 > ema15 并且 最新一天的成交量大于10日均线
+        if now_ema5 > now_ema10 > now_ema15 and kline_data.iloc[k_line_data_len - 1]['volume'] > volume_ma10.iloc[-1]:
             # 检查n天前的ma均线是否不满足条件
             conditions = [pre_n_ema5.iloc[i] > pre_n_ema10.iloc[i] > pre_n_ema15.iloc[i] for i in
                           range(len(pre_n_ema5))]
@@ -323,8 +356,8 @@ def ema_select(kline_data, entity_type):
         pre_n_ema20 = ma20[start_index:end_index]
         pre_n_ema30 = ma30[start_index:end_index]
 
-        # 最新一天的均线满足ema10 > ema20 > ema30
-        if now_ema10 > now_ema20 > now_ema30:
+        # 最新一天的均线满足ema10 > ema20 > ema30 并且 最新一天的成交量大于10日均线
+        if now_ema10 >= now_ema20 >= now_ema30 and kline_data.iloc[k_line_data_len - 1]['volume'] > volume_ma10.iloc[-1]:
             # 检查n天前的ma均线是否不满足条件
             conditions = [pre_n_ema10.iloc[i] > pre_n_ema20.iloc[i] > pre_n_ema30.iloc[i] for i in range(len(pre_n_ema10))]
             # 如果conditions中包含False，那么就说明刚满足条件，可以进入观察列表
@@ -366,15 +399,15 @@ def vol_multiple_select(k_data_list):
 
 
 # 前几天一直在下降，某一天突然大于 5，10，,15日均线
-
 if __name__ == "__main__":
     print("start select stock...")
     # a股板块选股
     # stock_select("wave_band_3", n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    # stock_select("wave_band_3", n=9, rate_threshold=80, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    stock_select("wave_band_3", n=7, rate_threshold=90, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股  TODO 美股的选择上尽量选择日成交量在100w美元以上的
     # 周末选股之后，进入观察列表，然后根据回调再次买入
     # stock_select("ema", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
     # stock_select("vol", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
     # test_stock_select()
+    # get_cn_stock_block('000089')
