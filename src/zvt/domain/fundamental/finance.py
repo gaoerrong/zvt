@@ -874,6 +874,7 @@ class FinanceFactor(FinanceBase, Mixin):
     total_op_income = Column(Float)
     #: 毛利润(元)
     gross_profit = Column(Float)
+    gross_profit_yoy = Column(Float)
     #: 归属净利润(元)
     net_profit = Column(Float)
     #: 扣非净利润(元)

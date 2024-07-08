@@ -28,3 +28,4 @@ setuptools~=58.0.4
 mplfinance
 anthropic
 openai==1.0
+ta-lib

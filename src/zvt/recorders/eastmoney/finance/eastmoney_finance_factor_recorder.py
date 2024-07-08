@@ -41,6 +41,8 @@ finance_factor_map = {
     "total_op_income": "Totalincome",
     # 毛利润(元)
     "gross_profit": "Grossprofit",
+    # 毛利增长同比
+    "gross_profit_yoy": "Grossprofityoy",
     # 归属净利润(元)
     "net_profit": "Parentnetprofit",
     # 扣非净利润(元)
@@ -260,6 +262,7 @@ class ChinaStockFinanceFactorRecorder(BaseChinaStockFinanceRecorder):
             data_dict['Totalincomeyoy'] = json_data.get('TOTAL_INCOME_YOY') #营业总收入同比增长
 
         data_dict['Grossprofit'] = json_data.get('GROSS_PROFIT') #毛利润
+        data_dict['Grossprofityoy'] = json_data.get('GROSS_PROFIT_YOY')
         data_dict['Parentnetprofit'] = json_data.get('PARENT_HOLDER_NETPROFIT') #归属净利润
         data_dict['Parentnetprofityoy'] = json_data.get('PARENT_HOLDER_NETPROFIT_YOY') #归母净利润同比
         data_dict['Grossmargin'] = json_data.get('GROSS_PROFIT_RATIO') #毛利率
