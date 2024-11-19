@@ -1,4 +1,4 @@
-requests==2.28.2
+requests==2.27.1
 SQLAlchemy == 1.4.46
 pandas==1.5.3
 arrow==1.2.3
