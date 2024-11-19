@@ -78,7 +78,9 @@ def get_mysql_db_engine(provider: str, db_name: str = None) -> Engine:
     engine_key = "{}_{}".format(provider, db_name)
     db_engine = zvt_context.db_engine_map.get(engine_key)
     if not db_engine:
-        db_engine = create_engine('mysql+mysqlconnector://root:123456789@localhost:3306/s_data')
+        # db_engine = create_engine('mysql+mysqlconnector://root:123456789@localhost:3306/s_data')
+        # db_engine = create_engine('mysql+mysqlconnector://root:root123456@117.72.55.24:3306/s_data')
+        db_engine = create_engine('mysql+mysqlconnector://root:root123456@localhost:3306/s_data')
         zvt_context.db_engine_map[engine_key] = db_engine
     return db_engine
 

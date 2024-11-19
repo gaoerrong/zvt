@@ -27,12 +27,12 @@ def test_stock_select():
     # data_schema = Stock1dKdata
     # order = Stock1dKdata.timestamp.asc()
 
-    code = 'CPNG'
-    data_schema = Stockus1dKdata
-    order = Stockus1dKdata.timestamp.asc()
+    code = 'TSLA'
+    data_schema = Stockus1wkKdata
+    order = Stockus1wkKdata.timestamp.asc()
 
     start_timestamp = datetime.datetime.strptime('2023-11-01', '%Y-%m-%d')
-    end_timestamp = datetime.datetime.strptime('2024-02-23', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2024-06-15', '%Y-%m-%d')
 
     k_data_list = get_data(
         data_schema=data_schema,
@@ -51,7 +51,7 @@ def stock_select(strategy_type: int, **p_kv):
     # 获取当前日期
     today = datetime.date.today()
     # 创建文件夹
-    output_dir = f"/Users/gaoerrong/Downloads/stock_select_result/{p_kv['sub_dir_path']}/{today.strftime('%Y-%m-%d')}"
+    output_dir = f"/Users/gaoerrong/stock/stock_select_result/{p_kv['sub_dir_path']}/{today.strftime('%Y-%m-%d')}"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     # 计算往前推 n 周的日期
@@ -103,7 +103,7 @@ def stock_select(strategy_type: int, **p_kv):
 def week_tight_stock_selection(kline_data):
     # Calculate the 10-week EMA
     df = kline_data
-    df['10_week_ema'] = calculate_ema(df['close'], 10)
+    df['10_week_ema'] = talib.EMA(kline_data['close'],10)# calculate_ema(df['close'], 10)
 
     # Check condition 1: Each weekly close should be within about 1% of the prior week’s close in the recent 3 weeks
     recent_closes = df['close'].iloc[-3:]

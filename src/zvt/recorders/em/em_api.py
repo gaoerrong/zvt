@@ -330,6 +330,15 @@ def get_kdata(entity_id, level=IntervalLevel.LEVEL_1DAY, adjust_type=AdjustType.
     results = resp.json()
     data = results["data"]
 
+    # 部分nyse市场ETF的数据获取不到，在market 107 所以需要重新修改一下
+    if data is None and entity_type == 'stockus' and exchange == 'nyse':
+        sec_id = "107." + code
+        url = f"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={sec_id}&klt={level_flag}&fqt={fq_flag}&lmt={limit}&end=20500000&iscca=1&fields1=f1,f2,f3,f4,f5,f6,f7,f8&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64&ut=f057cbcbce2a86e2866ab8877db1d059&forcect=1"
+        resp = requests.get(url, headers=DEFAULT_HEADER)
+        resp.raise_for_status()
+        results = resp.json()
+        data = results["data"]
+
     kdatas = []
 
     if data:
@@ -522,11 +531,14 @@ def get_tradable_list(
             df.columns = ["code", "exchange", "name", "cap", "cap1", "pe", "pb"]
             df[["cap", "cap1", "pe", "pb"]] = df[["cap", "cap1", "pe", "pb"]].apply(pd.to_numeric, errors="coerce")
         else:
+            # 过滤掉垃圾数据，没有最新价格，成交量的数据
+            df = df[df['f2'] != '-']
             df = df[["f12", "f13", "f14"]]
             df.columns = ["code", "exchange", "name"]
 
         df["exchange"] = exchange.value
         df["entity_type"] = entity_type.value
+        df["code"] = df["code"].str.upper()
         df["id"] = df[["entity_type", "exchange", "code"]].apply(lambda x: "_".join(x.astype(str)), axis=1)
         df["entity_id"] = df["id"]
         if entity_type == TradableType.block:

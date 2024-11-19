@@ -26,12 +26,12 @@ def test_stock_select():
     # data_schema = Stock1dKdata
     # order = Stock1dKdata.timestamp.asc()
 
-    code = 'CPNG'
+    code = 'SPOT'
     data_schema = Stockus1dKdata
     order = Stockus1dKdata.timestamp.asc()
 
-    start_timestamp = datetime.datetime.strptime('2023-11-01', '%Y-%m-%d')
-    end_timestamp = datetime.datetime.strptime('2024-02-23', '%Y-%m-%d')
+    start_timestamp = datetime.datetime.strptime('2021-11-01', '%Y-%m-%d')
+    end_timestamp = datetime.datetime.strptime('2023-02-02', '%Y-%m-%d')
 
     k_data_list = get_data(
         data_schema=data_schema,
@@ -40,7 +40,7 @@ def test_stock_select():
         end_timestamp=end_timestamp,
         order=order,
     )
-    result = ema_select(k_data_list, 'stockus')
+    result = cross_200_day_ema(k_data_list)
     # result = wave_band_select_3(k_data_list, 7,90)
     print(f"计算结果: {result}")
 
@@ -395,7 +395,31 @@ def vol_multiple_select(k_data_list):
             return True
 
     return False
+
 # ---------------------------------------------------------------------------------------------------------------------
+# I have the following weekly K-line data structure, which contains n weeks of data.
+# kline_data['timestamp', 'open', 'high', 'low', 'close', 'volume']
+#
+# Please implement a stock selection method according to the following requirements. If the conditions are met, it returns true, otherwise it returns false:
+# 1.In recent 3 days,each day close should be > 200-day ema.
+# 2.In recent n-3 days,the number of daily closing prices below the 200-day ema is greater than 80% of the total number
+# 200日均线穿越选股
+def cross_200_day_ema(kline_data):
+    df = kline_data
+    df['200_day_ema'] = talib.EMA(kline_data['close'],200)
+    # Check if the closing prices of the last 3 days are all above the 200-day EMA
+    recent_3_days = kline_data[-3:]
+    if not (recent_3_days['close'] > recent_3_days['200_day_ema']).all():
+        return False
+    # Check if more than 80% of the closing prices in the period prior to the last 3 days are below the 200-day EMA
+    prior_days = kline_data[-10:-3]
+    total_prior_days = len(prior_days)
+    days_below_ema = (prior_days['close'] < prior_days['200_day_ema']).sum()
+
+    if days_below_ema / total_prior_days <= 0.8:
+        return False
+
+    return True
 
 
 # 前几天一直在下降，某一天突然大于 5，10，,15日均线
@@ -404,10 +428,10 @@ if __name__ == "__main__":
     # a股板块选股
     # stock_select("wave_band_3", n=7, rate_threshold=80, entity_type='block', data_schema=Block1dKdata, order=Block1dKdata.timestamp.asc(), sub_dir_path='a_block')
     # a股正股选股 可能n=10天 or 9 or 8天的概率会大一点 （可能在加个条件，最后一天的股价要站上5日均线？？）
-    stock_select("wave_band_3", n=7, rate_threshold=90, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
+    # stock_select("wave_band_3", n=7, rate_threshold=90, entity_type='stock', data_schema=Stock1dKdata, order=Stock1dKdata.timestamp.asc(), sub_dir_path='a_stock')
     # 用于美股选股  TODO 美股的选择上尽量选择日成交量在100w美元以上的
     # 周末选股之后，进入观察列表，然后根据回调再次买入
     # stock_select("ema", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
     # stock_select("vol", entity_type='stockus', data_schema=Stockus1dKdata, order=Stockus1dKdata.timestamp.asc(), sub_dir_path='us_stock')
-    # test_stock_select()
+    test_stock_select()
     # get_cn_stock_block('000089')
